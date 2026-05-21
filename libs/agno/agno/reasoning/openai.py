@@ -12,20 +12,35 @@ if TYPE_CHECKING:
 
 
 def is_openai_reasoning_model(reasoning_model: Model) -> bool:
-    return (
-        (
-            reasoning_model.__class__.__name__ == "OpenAIChat"
-            or reasoning_model.__class__.__name__ == "OpenAIResponses"
-            or reasoning_model.__class__.__name__ == "AzureOpenAI"
-        )
-        and (
-            ("o4" in reasoning_model.id)
-            or ("o3" in reasoning_model.id)
-            or ("o1" in reasoning_model.id)
-            or ("5.1" in reasoning_model.id)
-            or ("5.2" in reasoning_model.id)
-        )
-    ) or (isinstance(reasoning_model, OpenAILike) and "deepseek-r1" in reasoning_model.id.lower())
+    model_id_lower = reasoning_model.id.lower()
+
+    # Native OpenAI reasoning models (o1, o3, o4, 5.1, 5.2)
+    is_native_openai = (
+        reasoning_model.__class__.__name__ == "OpenAIChat"
+        or reasoning_model.__class__.__name__ == "OpenAIResponses"
+        or reasoning_model.__class__.__name__ == "AzureOpenAI"
+    ) and (
+        ("o4" in reasoning_model.id)
+        or ("o3" in reasoning_model.id)
+        or ("o1" in reasoning_model.id)
+        or ("5.1" in reasoning_model.id)
+        or ("5.2" in reasoning_model.id)
+    )
+
+    # OpenAILike providers (Together, Fireworks, OpenRouter, DeepInfra, VLLM, etc.)
+    # Also covers self-hosted OpenAI-compatible servers (OpenAIChat with custom base_url)
+    is_openai_compatible = isinstance(reasoning_model, OpenAILike) or (
+        reasoning_model.__class__.__name__ == "OpenAIChat" and getattr(reasoning_model, "base_url", None) is not None
+    )
+    is_openai_like_reasoning = is_openai_compatible and (
+        getattr(reasoning_model, "enable_thinking", None) is True
+        or "qwq" in model_id_lower
+        or "qwen3" in model_id_lower
+        or "deepseek-r1" in model_id_lower
+        or "openthinker" in model_id_lower
+    )
+
+    return is_native_openai or is_openai_like_reasoning
 
 
 def get_openai_reasoning(
