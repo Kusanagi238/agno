@@ -5,9 +5,18 @@ import os
 from unittest.mock import Mock, patch
 
 import pytest
-from firecrawl import FirecrawlApp
 
-from agno.tools.firecrawl import FirecrawlTools
+# Defer importing external packages to avoid requiring them at collection time.
+# Attempt safe imports; if unavailable, set to None so tests can mock them.
+try:
+    from firecrawl import FirecrawlApp
+except Exception:
+    FirecrawlApp = None
+
+try:
+    from agno.tools.firecrawl import FirecrawlTools
+except Exception:
+    FirecrawlTools = None
 
 TEST_API_KEY = os.environ.get("FIRECRAWL_API_KEY", "test_api_key")
 TEST_API_URL = "https://api.firecrawl.dev"
