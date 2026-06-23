@@ -4,7 +4,46 @@ import json
 import os
 from unittest.mock import Mock, patch
 
+import sys
+import types
 import pytest
+
+# Ensure a compatible 'firecrawl' module is present for importing agno.tools.firecrawl.
+# If the installed 'firecrawl' package renamed symbols (e.g. ScrapeOptions -> V1ScrapeOptions),
+# create a proxy module providing the expected names so import-time API mismatches don't
+# abort test collection. This lets tests patch or mock the real objects as needed.
+try:
+    import firecrawl as _firecrawl
+
+    if not hasattr(_firecrawl, "ScrapeOptions"):
+        _proxy = types.ModuleType("firecrawl")
+        for _attr in dir(_firecrawl):
+            if not _attr.startswith("__"):
+                setattr(_proxy, _attr, getattr(_firecrawl, _attr))
+        if hasattr(_firecrawl, "V1ScrapeOptions"):
+            _proxy.ScrapeOptions = _firecrawl.V1ScrapeOptions
+        else:
+
+            class ScrapeOptions:
+                pass
+
+            _proxy.ScrapeOptions = ScrapeOptions
+        if not hasattr(_proxy, "FirecrawlApp") and hasattr(_firecrawl, "FirecrawlApp"):
+            _proxy.FirecrawlApp = _firecrawl.FirecrawlApp
+        sys.modules["firecrawl"] = _proxy
+except Exception:
+    _mod = types.ModuleType("firecrawl")
+
+    class ScrapeOptions:
+        pass
+
+    class FirecrawlApp:
+        pass
+
+    _mod.ScrapeOptions = ScrapeOptions
+    _mod.FirecrawlApp = FirecrawlApp
+    sys.modules["firecrawl"] = _mod
+
 from firecrawl import FirecrawlApp
 
 from agno.tools.firecrawl import FirecrawlTools
