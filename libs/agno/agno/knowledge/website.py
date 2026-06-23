@@ -87,7 +87,8 @@ class WebsiteKnowledgeBase(AgentKnowledge):
 
         num_documents = 0
         for url in urls_to_read:
-            if document_list := self.reader.read(url=url):
+            document_list = self.reader.read(url=url)
+            if document_list:
                 # Filter out documents which already exist in the vector db
                 if not recreate:
                     document_list = [document for document in document_list if not self.vector_db.doc_exists(document)]
@@ -138,7 +139,7 @@ class WebsiteKnowledgeBase(AgentKnowledge):
         if not recreate:
             for url in urls_to_read[:]:
                 log_debug(f"Checking if {url} exists in the vector db")
-                name_exists = vector_db.async_name_exists(name=url)
+                name_exists = await vector_db.async_name_exists(name=url)
                 if name_exists:
                     log_debug(f"Skipping {url} as it exists in the vector db")
                     urls_to_read.remove(url)

@@ -1,5 +1,5 @@
-from agno.docker.app.postgres.pgvector import PgVectorDb
-from agno.docker.app.postgres.postgres import PostgresDb
+from .pgvector import PgVectorDb
+from .postgres import PostgresDb
 
 __all__ = [
     "PgVectorDb",
