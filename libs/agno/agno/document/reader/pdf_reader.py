@@ -43,7 +43,7 @@ def process_image_page(doc_name: str, page_number: int, page: Any) -> Document:
     # Append the document
     return Document(
         name=doc_name,
-        id=str(uuid4()),
+        id=f"{doc_name}_{page_number}",
         meta_data={"page": page_number},
         content=content,
     )
@@ -63,7 +63,9 @@ async def async_process_image_page(doc_name: str, page_number: int, page: Any) -
 
     # Process images in parallel
     async def process_image(image_data: bytes) -> List[str]:
-        ocr_result, _ = ocr(image_data)
+        # rapidocr is synchronous; run it in the default executor to avoid blocking the event loop
+        loop = asyncio.get_running_loop()
+        ocr_result, _ = await loop.run_in_executor(None, ocr, image_data)
         return [item[1] for item in ocr_result] if ocr_result else []
 
     image_tasks = [process_image(image.data) for image in page.images]
@@ -77,7 +79,7 @@ async def async_process_image_page(doc_name: str, page_number: int, page: Any) -
 
     return Document(
         name=doc_name,
-        id=str(uuid4()),
+        id=f"{doc_name}_{page_number}",
         meta_data={"page": page_number},
         content=content,
     )
@@ -116,7 +118,7 @@ class PDFReader(BasePDFReader):
             documents.append(
                 Document(
                     name=doc_name,
-                    id=str(uuid4()),
+                    id=f"{doc_name}_{page_number}",
                     meta_data={"page": page_number},
                     content=page.extract_text(),
                 )
