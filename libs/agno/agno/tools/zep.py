@@ -1,10 +1,28 @@
 import uuid
 from os import getenv
 from textwrap import dedent
-from typing import List, Optional
+from typing import List, Optional, TYPE_CHECKING, Any
 
 from agno.tools import Toolkit
 from agno.utils.log import log_debug, log_error, log_warning
+
+# Import zep_cloud types only for type checking to avoid hard dependency issues at import time.
+# At runtime, try to import the specific symbols; if the package is not installed, fall back to
+# Any so runtime code can still be imported. If there is an ImportError other than
+# ModuleNotFoundError (for example an API mismatch where a symbol is missing), re-raise it so
+# the real cause is visible instead of masking it with a generic message.
+if TYPE_CHECKING:
+    from zep_cloud.types import MemorySearchResult, Message as ZepMessage
+else:
+    try:
+        from zep_cloud.types import MemorySearchResult, Message as ZepMessage
+    except ModuleNotFoundError:
+        # zep-cloud is not installed; use typing fallbacks so module import doesn't fail
+        MemorySearchResult = Any  # type: ignore
+        ZepMessage = Any  # type: ignore
+    except ImportError:
+        # API mismatch or other import error — surface the real error to aid debugging
+        raise
 
 try:
     from zep_cloud import BadRequestError, NotFoundError

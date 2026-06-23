@@ -855,11 +855,12 @@ class Team:
         # Update the TeamRunResponse metrics
         run_response.metrics = self._aggregate_metrics_from_messages(messages_for_run_response)
 
-        for tool_call in model_response.tool_calls:
-            tool_name = tool_call.get("tool_name", "")
-            if tool_name.lower() in ["think", "analyze"]:
-                tool_args = tool_call.get("tool_args", {})
-                self.update_reasoning_content_from_tool_call(run_response, tool_name, tool_args)
+        if model_response.tool_calls is not None:
+            for tool_call in model_response.tool_calls:
+                tool_name = tool_call.get("tool_name", "")
+                if tool_name.lower() in ["think", "analyze"]:
+                    tool_args = tool_call.get("tool_args", {})
+                    self.update_reasoning_content_from_tool_call(run_response, tool_name, tool_args)
 
         # 4. Update Team Memory
         if isinstance(self.memory, TeamMemory):
@@ -5075,11 +5076,14 @@ class Team:
                 team_member_interactions_str = None
                 if self.share_member_interactions:
                     team_member_interactions_str = self.memory.get_team_member_interactions_str()
-                    if context_images := self.memory.get_team_context_images():
+                    context_images = self.memory.get_team_context_images()
+                    if context_images:
                         images.extend([Image.from_artifact(img) for img in context_images])
-                    if context_videos := self.memory.get_team_context_videos():
+                    context_videos = self.memory.get_team_context_videos()
+                    if context_videos:
                         videos.extend([Video.from_artifact(vid) for vid in context_videos])
-                    if context_audio := self.memory.get_team_context_audio():
+                    context_audio = self.memory.get_team_context_audio()
+                    if context_audio:
                         audio.extend([Audio.from_artifact(aud) for aud in context_audio])
             else:
                 self.memory = cast(Memory, self.memory)
@@ -5090,11 +5094,14 @@ class Team:
                 team_member_interactions_str = None
                 if self.share_member_interactions:
                     team_member_interactions_str = self.memory.get_team_member_interactions_str(session_id=session_id)  # type: ignore
-                    if context_images := self.memory.get_team_context_images(session_id=session_id):  # type: ignore
+                    context_images = self.memory.get_team_context_images(session_id=session_id)  # type: ignore
+                    if context_images:
                         images.extend([Image.from_artifact(img) for img in context_images])
-                    if context_videos := self.memory.get_team_context_videos(session_id=session_id):  # type: ignore
+                    context_videos = self.memory.get_team_context_videos(session_id=session_id)  # type: ignore
+                    if context_videos:
                         videos.extend([Video.from_artifact(vid) for vid in context_videos])
-                    if context_audio := self.memory.get_team_context_audio(session_id=session_id):  # type: ignore
+                    context_audio = self.memory.get_team_context_audio(session_id=session_id)  # type: ignore
+                    if context_audio:
                         audio.extend([Audio.from_artifact(aud) for aud in context_audio])
 
             # 3. Create the member agent task
@@ -5211,11 +5218,14 @@ class Team:
                 team_member_interactions_str = None
                 if self.share_member_interactions:
                     team_member_interactions_str = self.memory.get_team_member_interactions_str()
-                    if context_images := self.memory.get_team_context_images():
+                    context_images = self.memory.get_team_context_images()
+                    if context_images:
                         images.extend([Image.from_artifact(img) for img in context_images])
-                    if context_videos := self.memory.get_team_context_videos():
+                    context_videos = self.memory.get_team_context_videos()
+                    if context_videos:
                         videos.extend([Video.from_artifact(vid) for vid in context_videos])
-                    if context_audio := self.memory.get_team_context_audio():
+                    context_audio = self.memory.get_team_context_audio()
+                    if context_audio:
                         audio.extend([Audio.from_artifact(aud) for aud in context_audio])
             else:
                 self.memory = cast(Memory, self.memory)
@@ -5226,11 +5236,14 @@ class Team:
                 team_member_interactions_str = None
                 if self.share_member_interactions:
                     team_member_interactions_str = self.memory.get_team_member_interactions_str(session_id=session_id)  # type: ignore
-                    if context_images := self.memory.get_team_context_images(session_id=session_id):  # type: ignore
+                    context_images = self.memory.get_team_context_images(session_id=session_id)  # type: ignore
+                    if context_images:
                         images.extend([Image.from_artifact(img) for img in context_images])
-                    if context_videos := self.memory.get_team_context_videos(session_id=session_id):  # type: ignore
+                    context_videos = self.memory.get_team_context_videos(session_id=session_id)  # type: ignore
+                    if context_videos:
                         videos.extend([Video.from_artifact(vid) for vid in context_videos])
-                    if context_audio := self.memory.get_team_context_audio(session_id=session_id):  # type: ignore
+                    context_audio = self.memory.get_team_context_audio(session_id=session_id)  # type: ignore
+                    if context_audio:
                         audio.extend([Audio.from_artifact(aud) for aud in context_audio])
 
             # 3. Create the member agent task
