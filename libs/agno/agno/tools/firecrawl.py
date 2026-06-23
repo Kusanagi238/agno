@@ -5,10 +5,24 @@ from typing import Any, Dict, List, Optional
 from agno.tools import Toolkit
 from agno.utils.log import logger
 
+# firecrawl is an optional dependency. Do not raise on import failure so tests and
+# environments without firecrawl can still import this module. Provide graceful
+# fallbacks and try common compatibility aliases for ScrapeOptions.
 try:
-    from firecrawl import FirecrawlApp, ScrapeOptions  # type: ignore[attr-defined]
+    from firecrawl import FirecrawlApp  # type: ignore[attr-defined]
+
+    try:
+        from firecrawl import ScrapeOptions  # type: ignore[attr-defined]
+    except ImportError:
+        # older/newer versions might export a differently named options class
+        try:
+            from firecrawl import V1ScrapeOptions as ScrapeOptions  # type: ignore[attr-defined]
+        except ImportError:
+            ScrapeOptions = None
 except ImportError:
-    raise ImportError("`firecrawl-py` not installed. Please install using `pip install firecrawl-py`")
+    logger.warning("`firecrawl` package not available; firecrawl-based features will be disabled.")
+    FirecrawlApp = None
+    ScrapeOptions = None
 
 
 class CustomJSONEncoder(json.JSONEncoder):

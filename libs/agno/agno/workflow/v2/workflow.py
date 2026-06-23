@@ -2430,10 +2430,13 @@ class Workflow:
             show_step_details: Whether to show individual step outputs
             console: Rich console instance (optional)
         """
+        # Ensure we always pass a concrete dict to downstream functions to satisfy type expectations
+        additional_data_dict: Dict[str, Any] = additional_data or {}
+
         if stream:
             await self._aprint_response_stream(
                 message=message,
-                additional_data=additional_data,
+                additional_data=additional_data_dict,
                 user_id=user_id,
                 session_id=session_id,
                 audio=audio,
@@ -2449,7 +2452,7 @@ class Workflow:
         else:
             await self._aprint_response(
                 message=message,
-                additional_data=additional_data,
+                additional_data=additional_data_dict,
                 user_id=user_id,
                 session_id=session_id,
                 audio=audio,
@@ -3217,13 +3220,13 @@ class Workflow:
                 executor = step.active_executor
                 if hasattr(executor, "workflow_session_state") and executor.workflow_session_state:
                     # Merge the agent's session state back into workflow session state
-                    merge_dictionaries(self.workflow_session_state, executor.workflow_session_state)
+                    merge_dictionaries(self.workflow_session_state or {}, executor.workflow_session_state)
 
                 # If it's a team, collect from all members
                 if hasattr(executor, "members"):
                     for member in executor.members:
                         if hasattr(member, "workflow_session_state") and member.workflow_session_state:
-                            merge_dictionaries(self.workflow_session_state, member.workflow_session_state)
+                            merge_dictionaries(self.workflow_session_state or {}, member.workflow_session_state)
 
             elif isinstance(step, Steps):
                 # Recursively handle nested Steps
