@@ -6,7 +6,27 @@ from agno.tools import Toolkit
 from agno.utils.log import logger
 
 try:
-    from firecrawl import FirecrawlApp, ScrapeOptions  # type: ignore[attr-defined]
+    # Import firecrawl with compatibility for different package versions/names.
+# Some releases renamed ScrapeOptions to V1ScrapeOptions or expose modules differently,
+# so try a few common alternatives and provide a clear error if none are available.
+try:
+    from firecrawl import FirecrawlApp, ScrapeOptions
+except Exception:
+    try:
+        from firecrawl import FirecrawlApp, V1ScrapeOptions as ScrapeOptions
+    except Exception:
+        try:
+            # Fallback to submodule imports if the package exposes a different layout
+            from firecrawl.app import FirecrawlApp
+            from firecrawl.options import ScrapeOptions
+        except Exception:
+            raise ImportError(
+                "Could not import required names from the 'firecrawl' package. "
+                "Ensure 'firecrawl-py' is installed and that the installed version "
+                "exposes FirecrawlApp and ScrapeOptions (or V1ScrapeOptions). "
+                "If the API has changed, update this compatibility block accordingly."
+            )
+  # type: ignore[attr-defined]
 except ImportError:
     raise ImportError("`firecrawl-py` not installed. Please install using `pip install firecrawl-py`")
 
