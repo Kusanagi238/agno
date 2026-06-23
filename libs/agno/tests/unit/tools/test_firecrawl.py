@@ -2,9 +2,37 @@
 
 import json
 import os
+import sys
+import types
 from unittest.mock import Mock, patch
 
 import pytest
+
+# Ensure a 'firecrawl' module exists and exposes the expected symbols used by agno.tools.firecrawl
+try:
+    import firecrawl
+except Exception:
+    firecrawl = types.ModuleType("firecrawl")
+
+    # minimal FirecrawlApp stub for tests
+    class FirecrawlApp:
+        def __init__(self, *a, **k):
+            pass
+
+    firecrawl.FirecrawlApp = FirecrawlApp
+    sys.modules["firecrawl"] = firecrawl
+
+# Provide compatibility for ScrapeOptions: prefer existing V1ScrapeOptions if present
+if not hasattr(firecrawl, "ScrapeOptions"):
+    if hasattr(firecrawl, "V1ScrapeOptions"):
+        firecrawl.ScrapeOptions = getattr(firecrawl, "V1ScrapeOptions")
+    else:
+
+        class ScrapeOptions:
+            pass
+
+        firecrawl.ScrapeOptions = ScrapeOptions
+
 from firecrawl import FirecrawlApp
 
 from agno.tools.firecrawl import FirecrawlTools

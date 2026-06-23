@@ -56,7 +56,7 @@ class Llama(Model):
     base_url: Optional[Union[str, httpx.URL]] = None
     timeout: Optional[float] = None
     max_retries: Optional[int] = None
-    default_headers: Optional[Any] = None
+    default_http_headers: Optional[Any] = None
     default_query: Optional[Any] = None
     http_client: Optional[httpx.Client] = None
     client_params: Optional[Dict[str, Any]] = None
@@ -78,7 +78,7 @@ class Llama(Model):
             "base_url": self.base_url,
             "timeout": self.timeout,
             "max_retries": self.max_retries,
-            "default_headers": self.default_headers,
+            "default_headers": self.default_http_headers,
             "default_query": self.default_query,
         }
 
@@ -387,7 +387,9 @@ class Llama(Model):
 
         return model_response
 
-    def parse_provider_response_delta(self, response_delta: CreateChatCompletionResponseStreamChunk, **kwargs) -> ModelResponse:
+    def parse_provider_response_delta(
+        self, response_delta: CreateChatCompletionResponseStreamChunk, **kwargs
+    ) -> ModelResponse:
         """
         Parse the Llama streaming response into a ModelResponse.
 

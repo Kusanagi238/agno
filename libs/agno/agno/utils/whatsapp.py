@@ -51,7 +51,7 @@ def get_media(media_id: str) -> dict:
         return {"error": str(e)}
 
 
-async def get_media_async(media_id: str) -> dict:
+async def get_media_async(media_id: str) -> bytes:
     """
     Sends a GET request to the Facebook Graph API to retrieve media information.
 
@@ -70,8 +70,8 @@ async def get_media_async(media_id: str) -> dict:
             data = response.json()
 
         media_url = data.get("url")
-    except httpx.HTTPStatusError as e:
-        return {"error": str(e)}
+    except httpx.HTTPStatusError:
+        raise
 
     try:
         async with httpx.AsyncClient() as client:
@@ -79,8 +79,8 @@ async def get_media_async(media_id: str) -> dict:
             response.raise_for_status()  # Raise an HTTPError for bad responses (4xx and 5xx)
             data = response.content
         return data
-    except httpx.HTTPStatusError as e:
-        return {"error": str(e)}
+    except httpx.HTTPStatusError:
+        raise
 
 
 def upload_media(media_data: bytes, mime_type: str, filename: str = "file"):
