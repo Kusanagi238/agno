@@ -6,9 +6,13 @@ from agno.tools import Toolkit
 from agno.utils.log import logger
 
 try:
-    from firecrawl import FirecrawlApp, ScrapeOptions  # type: ignore[attr-defined]
+    from firecrawl import FirecrawlApp  # type: ignore[attr-defined]
 except ImportError:
-    raise ImportError("`firecrawl-py` not installed. Please install using `pip install firecrawl-py`")
+    # Defer hard failure to runtime; firecrawl may be optional in some environments.
+    FirecrawlApp = None
+    logger.warning(
+        "`firecrawl-py` not installed. Firecrawl functionality will be unavailable. Install with `pip install firecrawl-py`"
+    )
 
 
 class CustomJSONEncoder(json.JSONEncoder):
@@ -104,7 +108,14 @@ class FirecrawlTools(Toolkit):
         if self.limit or limit:
             params["limit"] = self.limit or limit
         if self.formats:
-            params["scrape_options"] = ScrapeOptions(formats=self.formats)  # type: ignore
+            try:
+                from firecrawl import ScrapeOptions  # type: ignore[attr-defined]
+
+                params["scrape_options"] = ScrapeOptions(formats=self.formats)  # type: ignore
+            except Exception:
+                # If ScrapeOptions is not available in the installed firecrawl package,
+                # fall back to a plain dict representing the options.
+                params["scrape_options"] = {"formats": self.formats}
 
         params["poll_interval"] = self.poll_interval
 
@@ -132,7 +143,13 @@ class FirecrawlTools(Toolkit):
         if self.limit or limit:
             params["limit"] = self.limit or limit
         if self.formats:
-            params["scrape_options"] = ScrapeOptions(formats=self.formats)  # type: ignore
+            try:
+                from firecrawl import ScrapeOptions  # type: ignore[attr-defined]
+
+                params["scrape_options"] = ScrapeOptions(formats=self.formats)  # type: ignore
+            except Exception:
+                # Fallback to a plain dict if ScrapeOptions isn't available
+                params["scrape_options"] = {"formats": self.formats}
         if self.search_params:
             params.update(self.search_params)
 
