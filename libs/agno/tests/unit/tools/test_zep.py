@@ -1,6 +1,22 @@
 from unittest.mock import AsyncMock, Mock, patch
 
+import sys
+import types
+
 import pytest
+
+# Provide a minimal fake zep_cloud.types module to avoid hard dependency at test-collection time
+# The real agno.tools.zep imports MemorySearchResult from zep_cloud.types during import;
+# if zep-cloud isn't installed, create a stub module so agno.tools.zep can be imported.
+if "zep_cloud.types" not in sys.modules:
+    zep_cloud_mod = types.ModuleType("zep_cloud")
+    zep_types_mod = types.ModuleType("zep_cloud.types")
+    class MemorySearchResult:  # minimal stub
+        pass
+    zep_types_mod.MemorySearchResult = MemorySearchResult
+    zep_cloud_mod.types = zep_types_mod
+    sys.modules["zep_cloud"] = zep_cloud_mod
+    sys.modules["zep_cloud.types"] = zep_types_mod
 
 from agno.tools.zep import ZepAsyncTools, ZepTools
 
