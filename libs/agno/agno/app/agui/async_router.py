@@ -59,13 +59,8 @@ async def run_team(team: Team, input: RunAgentInput) -> AsyncIterator[BaseEvent]
         messages = convert_agui_messages_to_agno_messages(input.messages or [])
         yield RunStartedEvent(type=EventType.RUN_STARTED, thread_id=input.thread_id, run_id=run_id)
 
-        # Request streaming response from team
-        response_stream = await team.arun(
-            messages=messages,
-            session_id=input.thread_id,
-            stream=True,
-            stream_intermediate_steps=True,
-        )
+        # Request response from team (use supported arun signature)
+        response_stream = await team.arun(messages=messages)
 
         # Stream the response content in AG-UI format
         async for event in async_stream_agno_response_as_agui_events(
