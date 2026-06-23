@@ -2,10 +2,25 @@
 
 import json
 import os
+import sys
+import types
 from unittest.mock import Mock, patch
 
 import pytest
-from firecrawl import FirecrawlApp
+
+# Avoid importing the real 'firecrawl' package at module import time during tests.
+# If the real package is not available (or is the wrong distribution), inject a
+# lightweight fake module into sys.modules so that importing agno.tools.firecrawl
+# (which may import from 'firecrawl') does not fail during test collection.
+try:
+    from firecrawl import FirecrawlApp
+except Exception:
+    _fake_firecrawl = types.ModuleType("firecrawl")
+    # Provide minimal attributes that tests or the project may expect.
+    _fake_firecrawl.FirecrawlApp = Mock()
+    _fake_firecrawl.ScrapeOptions = Mock()
+    sys.modules.setdefault("firecrawl", _fake_firecrawl)
+    FirecrawlApp = _fake_firecrawl.FirecrawlApp
 
 from agno.tools.firecrawl import FirecrawlTools
 
