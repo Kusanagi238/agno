@@ -5,9 +5,35 @@ import os
 from unittest.mock import Mock, patch
 
 import pytest
-from firecrawl import FirecrawlApp
+import importlib
 
-from agno.tools.firecrawl import FirecrawlTools
+class _LazyImport:
+    def __init__(self, module_name, attr):
+        self._module = module_name
+        self._attr = attr
+        self._loaded = False
+        self._obj = None
+    def _load(self):
+        if not self._loaded:
+            try:
+                mod = importlib.import_module(self._module)
+                self._obj = getattr(mod, self._attr)
+            except Exception:
+                self._obj = None
+            self._loaded = True
+    def __call__(self, *args, **kwargs):
+        self._load()
+        if self._obj is None:
+            raise ImportError(f"Could not import {self._attr} from {self._module}")
+        return self._obj(*args, **kwargs)
+    def __getattr__(self, name):
+        self._load()
+        if self._obj is None:
+            raise ImportError(f"Could not import {self._attr} from {self._module}")
+        return getattr(self._obj, name)
+
+FirecrawlApp = _LazyImport("firecrawl", "FirecrawlApp")
+FirecrawlTools = _LazyImport("agno.tools.firecrawl", "FirecrawlTools")
 
 TEST_API_KEY = os.environ.get("FIRECRAWL_API_KEY", "test_api_key")
 TEST_API_URL = "https://api.firecrawl.dev"

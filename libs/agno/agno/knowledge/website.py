@@ -79,15 +79,20 @@ class WebsiteKnowledgeBase(AgentKnowledge):
         # We check if the website url exists in the vector db if recreate is False
         urls_to_read = self.urls.copy()
         if not recreate:
+            # Build a filtered list instead of mutating while iterating
+            filtered_urls: List[str] = []
             for url in urls_to_read:
                 log_debug(f"Checking if {url} exists in the vector db")
                 if self.vector_db.name_exists(name=url):
                     log_debug(f"Skipping {url} as it exists in the vector db")
-                    urls_to_read.remove(url)
+                else:
+                    filtered_urls.append(url)
+            urls_to_read = filtered_urls
 
         num_documents = 0
         for url in urls_to_read:
-            if document_list := self.reader.read(url=url):
+            document_list = self.reader.read(url=url)
+            if document_list:
                 # Filter out documents which already exist in the vector db
                 if not recreate:
                     document_list = [document for document in document_list if not self.vector_db.doc_exists(document)]
@@ -138,7 +143,7 @@ class WebsiteKnowledgeBase(AgentKnowledge):
         if not recreate:
             for url in urls_to_read[:]:
                 log_debug(f"Checking if {url} exists in the vector db")
-                name_exists = vector_db.async_name_exists(name=url)
+                name_exists = await vector_db.async_name_exists(name=url)
                 if name_exists:
                     log_debug(f"Skipping {url} as it exists in the vector db")
                     urls_to_read.remove(url)
@@ -173,4 +178,8 @@ class WebsiteKnowledgeBase(AgentKnowledge):
 
         if self.optimize_on is not None and num_documents > self.optimize_on:
             log_debug("Optimizing Vector DB")
-            vector_db.optimize()
+            # Prefer an async optimize if available, otherwise run sync optimize in a thread
+            if hasattr(vector_db, "async_optimize"):
+                await vector_db.async_optimize()
+            else:
+                await asyncio.to_thread(vector_db.optimize)
