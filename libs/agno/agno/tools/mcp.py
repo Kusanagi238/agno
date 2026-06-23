@@ -178,6 +178,7 @@ class MCPTools(Toolkit):
             self._context = stdio_client(self.server_params)  # type: ignore
             client_timeout = self.timeout_seconds
 
+        assert self._context is not None, "_context is None when entering async context"
         session_params = await self._context.__aenter__()  # type: ignore
         read, write = session_params[0:2]
 
