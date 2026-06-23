@@ -6,9 +6,27 @@ from agno.tools import Toolkit
 from agno.utils.log import logger
 
 try:
+    # First try the expected symbol name
     from firecrawl import FirecrawlApp, ScrapeOptions  # type: ignore[attr-defined]
-except ImportError:
-    raise ImportError("`firecrawl-py` not installed. Please install using `pip install firecrawl-py`")
+except ImportError as _first_exc:
+    # Some versions of the installed package expose a different symbol name; try that as a fallback
+    try:
+        from firecrawl import FirecrawlApp  # type: ignore[attr-defined]
+        from firecrawl import V1ScrapeOptions as ScrapeOptions
+    except Exception:
+        # Determine whether the package is entirely missing or the symbols are just unavailable
+        try:
+            pass  # type: ignore
+        except Exception:
+            # Package is not installed
+            raise ImportError(
+                "`firecrawl-py` not installed. Please install using `pip install firecrawl-py`"
+            ) from _first_exc
+        # Package is installed but expected symbols are missing
+        raise ImportError(
+            "Unable to import 'ScrapeOptions' from 'firecrawl'. The installed 'firecrawl' package "
+            "does not expose 'ScrapeOptions' or 'V1ScrapeOptions'. Original error: {}".format(_first_exc)
+        ) from _first_exc
 
 
 class CustomJSONEncoder(json.JSONEncoder):
