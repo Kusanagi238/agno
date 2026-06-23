@@ -120,6 +120,18 @@ class Qdrant(VectorDb):
         self.hybrid_fusion_strategy = hybrid_fusion_strategy
 
         if self.search_type in [SearchType.keyword, SearchType.hybrid]:
+            # Help static type checkers avoid an import-not-found error when the fastembed
+            # extra is not installed in the environment used for type checking.
+            from typing import TYPE_CHECKING
+
+            if TYPE_CHECKING:
+                # Silence mypy about the missing optional dependency during static analysis.
+                # The runtime import below is still performed when needed.
+                try:
+                    from fastembed import SparseTextEmbedding  # type: ignore[import]
+                except Exception:
+                    pass
+
             try:
                 from fastembed import SparseTextEmbedding
 

@@ -1,11 +1,14 @@
+import importlib
 import os
 import tempfile
 from typing import List
 
 try:
-    from unstructured.chunking.title import chunk_by_title
-    from unstructured.partition.md import partition_md
-except ImportError:
+    _uc = importlib.import_module("unstructured.chunking.title")
+    chunk_by_title = getattr(_uc, "chunk_by_title")
+    _up = importlib.import_module("unstructured.partition.md")
+    partition_md = getattr(_up, "partition_md")
+except Exception:
     raise ImportError("`unstructured` not installed. Please install it using `pip install unstructured markdown`")
 
 from agno.document.base import Document
