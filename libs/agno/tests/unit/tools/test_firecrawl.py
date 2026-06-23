@@ -5,9 +5,12 @@ import os
 from unittest.mock import Mock, patch
 
 import pytest
-from firecrawl import FirecrawlApp
 
-from agno.tools.firecrawl import FirecrawlTools
+# Do not import the external 'firecrawl' package or the local
+# agno.tools.firecrawl module at module import time. Importing
+# them here causes pytest collection to fail when the external
+# dependency is not installed. Import or patch them inside
+# fixtures or test functions instead.
 
 TEST_API_KEY = os.environ.get("FIRECRAWL_API_KEY", "test_api_key")
 TEST_API_URL = "https://api.firecrawl.dev"
