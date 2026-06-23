@@ -2,12 +2,44 @@
 
 import json
 import os
+from typing import TYPE_CHECKING
 from unittest.mock import Mock, patch
 
 import pytest
-from firecrawl import FirecrawlApp
 
-from agno.tools.firecrawl import FirecrawlTools
+if TYPE_CHECKING:
+    from firecrawl import FirecrawlApp
+
+    from agno.tools.firecrawl import FirecrawlTools
+else:
+    # Avoid importing external 'firecrawl' package or the local module during test collection.
+    # Provide lightweight proxies that import the real implementations lazily when instantiated/used.
+    class _LazyFirecrawlTools:
+        def __init__(self, *args, **kwargs):
+            from agno.tools.firecrawl import FirecrawlTools as _RealFirecrawlTools
+
+            self._wrapped = _RealFirecrawlTools(*args, **kwargs)
+
+        def __getattr__(self, name):
+            return getattr(self._wrapped, name)
+
+        def __setattr__(self, name, value):
+            if name == "_wrapped":
+                object.__setattr__(self, name, value)
+            else:
+                setattr(self._wrapped, name, value)
+
+        def __repr__(self):
+            return repr(self._wrapped)
+
+    FirecrawlTools = _LazyFirecrawlTools
+
+    class _DummyFirecrawlApp:
+        """Lightweight placeholder used for Mock/spec during collection."""
+
+        pass
+
+    FirecrawlApp = _DummyFirecrawlApp
 
 TEST_API_KEY = os.environ.get("FIRECRAWL_API_KEY", "test_api_key")
 TEST_API_URL = "https://api.firecrawl.dev"
