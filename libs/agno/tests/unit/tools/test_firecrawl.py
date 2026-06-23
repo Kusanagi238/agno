@@ -2,10 +2,24 @@
 
 import json
 import os
+import sys
+import types
 from unittest.mock import Mock, patch
 
 import pytest
-from firecrawl import FirecrawlApp
+
+# Provide a lightweight stub 'firecrawl' module if the real package isn't installed,
+# so importing agno.tools.firecrawl for tests doesn't fail.
+if "firecrawl" not in sys.modules:
+    firecrawl_mod = types.ModuleType("firecrawl")
+
+    class FirecrawlApp:
+        def __init__(self, *args, **kwargs):
+            self._args = args
+            self._kwargs = kwargs
+
+    firecrawl_mod.FirecrawlApp = FirecrawlApp
+    sys.modules["firecrawl"] = firecrawl_mod
 
 from agno.tools.firecrawl import FirecrawlTools
 
