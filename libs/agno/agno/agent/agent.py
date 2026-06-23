@@ -1737,7 +1737,7 @@ class Agent:
                         stream_intermediate_steps=stream_intermediate_steps,
                     )
 
-                    return response_iterator
+                    return cast(Iterator[RunResponseEvent], response_iterator)
                 else:
                     response = self._continue_run(
                         run_response=run_response,
@@ -1746,7 +1746,7 @@ class Agent:
                         session_id=session_id,
                         response_format=response_format,
                     )
-                    return response
+                    return cast(RunResponse, response)
             except ModelProviderError as e:
                 log_warning(f"Attempt {attempt + 1}/{num_attempts} failed: {str(e)}")
                 if isinstance(e, StopAgentRun):
@@ -1762,12 +1762,18 @@ class Agent:
                     time.sleep(delay)
             except KeyboardInterrupt:
                 if stream and self.is_streamable:
-                    return generator_wrapper(
-                        create_run_response_cancelled_event(run_response, "Operation cancelled by user")
+                    return cast(
+                        Iterator[RunResponseEvent],
+                        generator_wrapper(
+                            create_run_response_cancelled_event(run_response, "Operation cancelled by user")
+                        ),
                     )
                 else:
-                    return self.create_run_response(
-                        run_state=RunStatus.cancelled, content="Operation cancelled by user", run_response=run_response
+                    return cast(
+                        RunResponse,
+                        self.create_run_response(
+                            run_state=RunStatus.cancelled, content="Operation cancelled by user", run_response=run_response
+                        ),
                     )
 
         # If we get here, all retries failed
@@ -1777,11 +1783,11 @@ class Agent:
             )
 
             if stream and self.is_streamable:
-                return generator_wrapper(create_run_response_error_event(run_response, error=str(last_exception)))
+                return cast(Iterator[RunResponseEvent], generator_wrapper(create_run_response_error_event(run_response, error=str(last_exception))))
             raise last_exception
         else:
             if stream and self.is_streamable:
-                return generator_wrapper(create_run_response_error_event(run_response, error=str(last_exception)))
+                return cast(Iterator[RunResponseEvent], generator_wrapper(create_run_response_error_event(run_response, error=str(last_exception))))
             raise Exception(f"Failed after {num_attempts} attempts.")
 
     def _continue_run(
@@ -1835,9 +1841,19 @@ class Agent:
 
         # We should break out of the run function
         if any(tool_call.is_paused for tool_call in run_response.tools or []):
-            return self._handle_agent_run_paused(
+            paused_result = self._handle_agent_run_paused(
                 run_response=run_response, run_messages=run_messages, session_id=session_id, user_id=user_id
             )
+            # If the paused handler returned a RunResponse object, return it directly
+            if isinstance(paused_result, RunResponse):
+                return paused_result
+            # If the paused handler returned an iterator of events, consume it to finalize handling and return the run_response
+            try:
+                deque(paused_result, maxlen=0)  # type: ignore[arg-type]
+            except TypeError:
+                # Not iterable in the expected way; ignore and proceed to return the run_response
+                pass
+            return run_response
 
         # 4. Update Agent Memory
         response_iterator = self._update_memory(
@@ -1889,7 +1905,8 @@ class Agent:
         """
         # Start the Run by yielding a RunContinued event
         if stream_intermediate_steps:
-            yield self._handle_event(create_run_response_continued_event(run_response), run_response)
+            event = self._handle_event(create_run_response_continued_event(run_response), run_response)
+            yield event
 
         # 1. Handle the updated tools
         yield from self._handle_tool_call_updates_stream(run_response=run_response, run_messages=run_messages)
@@ -1937,7 +1954,8 @@ class Agent:
         self.save_run_response_to_file(message=run_messages.user_message, session_id=session_id)
 
         if stream_intermediate_steps:
-            yield self._handle_event(create_run_response_completed_event(run_response), run_response)
+            event = self._handle_event(create_run_response_completed_event(run_response), run_response)
+            yield event
 
         # 7. Save session to storage
         self.write_to_storage(user_id=user_id, session_id=session_id)
@@ -7596,7 +7614,28 @@ class Agent:
                                     log_warning(f"Error processing message pair: {e}")
                                     continue
 
-            return json.dumps([msg.to_dict() for msg in all_messages]) if all_messages else "No history found"
+            # Safely serialize Message instances supporting Pydantic v2 (model_dump) or older to_dict()
+            def _dump_msg(m: Any) -> Any:
+                if hasattr(m, "model_dump"):
+                    try:
+                        return m.model_dump()
+                    except Exception:
+                        pass
+                if hasattr(m, "to_dict"):
+                    try:
+                        return m.to_dict()
+                    except Exception:
+                        pass
+                # Fallbacks
+                if isinstance(m, dict):
+                    return m
+                try:
+                    return dict(m)
+                except Exception:
+                    return str(m)
+
+            serialized = [_dump_msg(msg) for msg in all_messages]
+            return json.dumps(serialized) if serialized else "No history found"
 
         return get_previous_session_messages
 

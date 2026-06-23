@@ -5,7 +5,14 @@ import os
 from unittest.mock import Mock, patch
 
 import pytest
-from firecrawl import FirecrawlApp
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from firecrawl import FirecrawlApp  # pragma: no cover
+else:
+    class FirecrawlApp:  # pragma: no cover
+        """Dummy placeholder for FirecrawlApp used in tests when firecrawl isn't installed."""
+        pass
 
 from agno.tools.firecrawl import FirecrawlTools
 
