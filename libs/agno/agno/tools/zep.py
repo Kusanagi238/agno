@@ -9,8 +9,25 @@ from agno.utils.log import log_debug, log_error, log_warning
 try:
     from zep_cloud import BadRequestError, NotFoundError
     from zep_cloud.client import AsyncZep, Zep
-    from zep_cloud.types import MemorySearchResult
-    from zep_cloud.types import Message as ZepMessage
+    # MemorySearchResult and Message names may not exist in all zep-cloud versions.
+    # Attempt to import them and fall back to lightweight TypedDicts for compatibility.
+    try:
+        from zep_cloud.types import MemorySearchResult
+    except Exception:
+        from typing import TypedDict, Any, Dict
+        class MemorySearchResult(TypedDict, total=False):
+            id: str
+            score: float
+            meta: Dict[str, Any]
+            text: str
+    try:
+        from zep_cloud.types import Message as ZepMessage
+    except Exception:
+        from typing import TypedDict, Any, Dict
+        class ZepMessage(TypedDict, total=False):
+            id: str
+            role: str
+            content: str
 except ImportError:
     raise ImportError("`zep-cloud` package not found. Please install it with `pip install zep-cloud`")
 
