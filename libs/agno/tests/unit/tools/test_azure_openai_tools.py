@@ -185,8 +185,12 @@ def test_generate_image_missing_credentials(azure_openai_tools, mock_agent):
         azure_openai_tools.azure_endpoint = None
         azure_openai_tools.dalle_deployment = None
 
-        # Call the generate_image function
-        result = azure_openai_tools.generate_image(agent=mock_agent, prompt="A test prompt")
+        # Ensure no external HTTP call is made by mocking the post function
+        with patch("agno.tools.azure_openai.post") as mock_post:
+            mock_post.return_value = None
+
+            # Call the generate_image function
+            result = azure_openai_tools.generate_image(agent=mock_agent, prompt="A test prompt")
 
     # Verify the error message
     assert "not properly initialized" in result
