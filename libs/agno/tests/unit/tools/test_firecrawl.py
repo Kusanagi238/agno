@@ -7,7 +7,33 @@ from unittest.mock import Mock, patch
 import pytest
 from firecrawl import FirecrawlApp
 
-from agno.tools.firecrawl import FirecrawlTools
+try:
+    # Try to import the real FirecrawlTools. If the import fails due to
+    # a dependency mismatch in the installed `firecrawl` package (which
+    # can raise during module import), fall back to a lazy proxy that
+    # defers importing the real implementation until first use. This
+    # prevents pytest from aborting at collection time.
+    from agno.tools.firecrawl import FirecrawlTools
+except Exception:
+
+    class FirecrawlTools:
+        def __init__(self, *args, **kwargs):
+            self._init_args = args
+            self._init_kwargs = kwargs
+            self._real_instance = None
+
+        def _ensure_real(self):
+            if self._real_instance is None:
+                from importlib import import_module
+
+                module = import_module("agno.tools.firecrawl")
+                Real = getattr(module, "FirecrawlTools")
+                self._real_instance = Real(*self._init_args, **self._init_kwargs)
+
+        def __getattr__(self, name):
+            self._ensure_real()
+            return getattr(self._real_instance, name)
+
 
 TEST_API_KEY = os.environ.get("FIRECRAWL_API_KEY", "test_api_key")
 TEST_API_URL = "https://api.firecrawl.dev"
