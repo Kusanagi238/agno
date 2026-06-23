@@ -300,6 +300,9 @@ Remember: You must only compare the agent_output to the expected_output. The exp
             eval_input = self.get_eval_input()
             eval_expected_output = self.get_eval_expected_output()
 
+            if self.agent is None:
+                raise RuntimeError("No agent provided for evaluation")
+
             for i in range(self.num_iterations):
                 status = Status(f"Running evaluation {i + 1}...", spinner="dots", speed=1.0, refresh_per_second=10)
                 live_log.update(status)

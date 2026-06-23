@@ -51,12 +51,16 @@ def get_media(media_id: str) -> dict:
         return {"error": str(e)}
 
 
-async def get_media_async(media_id: str) -> dict:
+async def get_media_async(media_id: str) -> bytes | dict:
     """
     Sends a GET request to the Facebook Graph API to retrieve media information.
 
     Args:
         media_id (str): The ID of the media to retrieve.
+
+    Returns:
+        bytes | dict: On success returns the raw media content as bytes. On failure returns a dict
+        containing an "error" key with the error message.
     """
     url = f"https://graph.facebook.com/v22.0/{media_id}"
 
