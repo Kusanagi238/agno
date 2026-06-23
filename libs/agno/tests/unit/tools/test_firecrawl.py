@@ -7,7 +7,9 @@ from unittest.mock import Mock, patch
 import pytest
 from firecrawl import FirecrawlApp
 
-from agno.tools.firecrawl import FirecrawlTools
+# Import FirecrawlTools lazily inside fixtures/tests to avoid importing agno.tools.firecrawl
+# at module import time (prevents ImportError when firecrawl API differs or is missing).
+# The actual import is performed within the fixtures below when needed.
 
 TEST_API_KEY = os.environ.get("FIRECRAWL_API_KEY", "test_api_key")
 TEST_API_URL = "https://api.firecrawl.dev"
