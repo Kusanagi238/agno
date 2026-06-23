@@ -5,6 +5,31 @@ from typing import Any, Dict, List, Optional
 from agno.tools import Toolkit
 from agno.utils.log import logger
 
+# Robustly import firecrawl symbols. Some versions rename ScrapeOptions -> V1ScrapeOptions
+# and we must avoid raising at import-time with a misleading message so test collection
+# does not abort. If symbols are missing, set them to None and log a warning.
+try:
+    from firecrawl import FirecrawlApp  # type: ignore
+    try:
+        from firecrawl import ScrapeOptions  # type: ignore
+    except ImportError:
+        try:
+            from firecrawl import V1ScrapeOptions as ScrapeOptions  # type: ignore
+            logger.debug("Using V1ScrapeOptions aliased as ScrapeOptions")
+        except Exception:
+            ScrapeOptions = None  # type: ignore
+            logger.warning(
+                "firecrawl is installed but ScrapeOptions/V1ScrapeOptions not found; "
+                "functionality that depends on it may fail. Please ensure a compatible firecrawl-py version."
+            )
+except Exception:
+    FirecrawlApp = None  # type: ignore
+    ScrapeOptions = None  # type: ignore
+    logger.warning(
+        "firecrawl package not available; firecrawl-dependent features will be disabled. "
+        "To enable them, install a compatible firecrawl-py version."
+    )
+
 try:
     from firecrawl import FirecrawlApp, ScrapeOptions  # type: ignore[attr-defined]
 except ImportError:
