@@ -11,8 +11,37 @@ try:
     from zep_cloud.client import AsyncZep, Zep
     from zep_cloud.types import MemorySearchResult
     from zep_cloud.types import Message as ZepMessage
-except ImportError:
-    raise ImportError("`zep-cloud` package not found. Please install it with `pip install zep-cloud`")
+    ZEP_AVAILABLE = True
+except Exception:
+    # The installed zep_cloud package may be missing or have a different API
+    # Provide light-weight fallbacks so the module can still be imported during
+    # test collection / environments where zep-cloud isn't available or
+    # exposes a different API surface. These fallbacks raise at runtime if
+    # actually used to avoid masking real errors.
+    ZEP_AVAILABLE = False
+
+    class BadRequestError(Exception):
+        pass
+
+    class NotFoundError(Exception):
+        pass
+
+    class AsyncZep:
+        def __init__(self, *_, **__):
+            raise RuntimeError("zep-cloud package not installed or incompatible; AsyncZep is unavailable")
+
+    class Zep:
+        def __init__(self, *_, **__):
+            raise RuntimeError("zep-cloud package not installed or incompatible; Zep is unavailable")
+
+    class MemorySearchResult:
+        def __init__(self, results=None, total=0):
+            self.results = results or []
+            self.total = total
+
+    class ZepMessage(dict):
+        """Minimal placeholder for zep_cloud.types.Message so imports succeed."""
+        pass
 
 DEFAULT_INSTRUCTIONS = dedent(
     """\

@@ -1,4 +1,4 @@
-from agno.models.mistral.mistral import MistralChat
+from .mistral import MistralChat
 
 __all__ = [
     "MistralChat",

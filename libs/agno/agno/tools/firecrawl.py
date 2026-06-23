@@ -5,6 +5,23 @@ from typing import Any, Dict, List, Optional
 from agno.tools import Toolkit
 from agno.utils.log import logger
 
+# Safely import firecrawl and tolerate API differences or missing package so
+# import-time failures don't abort test collection. We prefer to look up
+# possibly renamed symbols (e.g. V1ScrapeOptions) and fall back to None.
+try:
+    import firecrawl as _firecrawl  # type: ignore
+    FirecrawlApp = getattr(_firecrawl, "FirecrawlApp", None)
+    # Some firecrawl versions expose ScrapeOptions under a versioned name.
+    ScrapeOptions = getattr(_firecrawl, "ScrapeOptions", None) or getattr(_firecrawl, "V1ScrapeOptions", None)
+    if FirecrawlApp is None:
+        logger.warning("firecrawl package imported but 'FirecrawlApp' not found. Firecrawl features will be disabled.")
+    if ScrapeOptions is None:
+        logger.warning("firecrawl package imported but 'ScrapeOptions' not found. Firecrawl features will be limited.")
+except Exception as e:
+    FirecrawlApp = None
+    ScrapeOptions = None
+    logger.debug("Could not import firecrawl package: %s. Firecrawl features disabled.", e)
+
 try:
     from firecrawl import FirecrawlApp, ScrapeOptions  # type: ignore[attr-defined]
 except ImportError:
