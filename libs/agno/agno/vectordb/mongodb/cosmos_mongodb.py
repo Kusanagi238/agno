@@ -81,7 +81,7 @@ class CosmosMongoDb(MongoDb):
     def _get_collection(self) -> Collection:
         """Get the collection following Azure Cosmos DB patterns."""
         if self._collection is None:
-            if self._client is None:
+            if self._db is None:
                 self._get_client()
 
             self._collection = self._db.get_collection(self.collection_name)
