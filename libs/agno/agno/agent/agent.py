@@ -4180,19 +4180,18 @@ class Agent:
             return
 
         agent_session_from_db = self.storage.read(session_id=session_id)
-        if (
-            agent_session_from_db is not None
-            and agent_session_from_db.memory is not None
-            and "runs" in agent_session_from_db.memory  # type: ignore
-        ):
+        # Use getattr to safely access memory on the returned object in case storage
+        # returned a WorkflowSession (which may not have a .memory attribute).
+        memory_from_db = getattr(agent_session_from_db, "memory", None) if agent_session_from_db is not None else None
+        if memory_from_db is not None and "runs" in memory_from_db:
             if isinstance(self.memory, AgentMemory):
                 return
             try:
-                if self.memory.runs is None:  # type: ignore
+                if getattr(self.memory, "runs", None) is None:  # type: ignore
                     self.memory.runs = {}  # type: ignore
                 if session_id not in self.memory.runs:  # type: ignore
                     self.memory.runs[session_id] = []  # type: ignore
-                for run in agent_session_from_db.memory["runs"]:  # type: ignore
+                for run in memory_from_db["runs"]:
                     run_session_id = run["session_id"]
                     skip = False
                     for existing_run in self.memory.runs[run_session_id]:  # type: ignore
