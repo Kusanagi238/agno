@@ -123,15 +123,24 @@ class Qdrant(VectorDb):
         # TODO(v2.0.0): Make named vectors mandatory and simplify the codebase
         self.use_named_vectors = search_type in [SearchType.hybrid]
 
+        # Make fastembed visible to the type checker without forcing it at runtime.
+        from typing import TYPE_CHECKING, Any
+
+        if TYPE_CHECKING:
+            # Help static type checkers find the type without importing at runtime
+            pass  # type: ignore
+
         if self.search_type in [SearchType.keyword, SearchType.hybrid]:
             try:
-                from fastembed import SparseTextEmbedding
+                # Import at runtime only when needed; alias to avoid mypy/runtime mismatch
+                from fastembed import SparseTextEmbedding as _SparseTextEmbedding  # type: ignore
 
                 default_kwargs = {"model_name": DEFAULT_SPARSE_MODEL}
                 if fastembed_kwargs:
                     default_kwargs.update(fastembed_kwargs)
 
-                self.sparse_encoder = SparseTextEmbedding(**default_kwargs)
+                # Use a non-strict type for the instance to avoid mypy complaining when stub is absent
+                self.sparse_encoder: Any = _SparseTextEmbedding(**default_kwargs)
 
             except ImportError as e:
                 raise ImportError(
@@ -317,25 +326,25 @@ class Qdrant(VectorDb):
             cleaned_content = document.content.replace("\x00", "\ufffd")
             doc_id = md5(cleaned_content.encode()).hexdigest()
 
-            # TODO(v2.0.0): Remove conditional vector naming logic
-            if self.use_named_vectors:
-                vector = {self.dense_vector_name: document.embedding}
-            else:
-                vector = document.embedding
-
+            # Build a consistent final vector variable (either a raw embedding list for
+            # legacy vector search or a dict of named vectors for keyword/hybrid)
             if self.search_type == SearchType.vector:
                 # For vector search, maintain backward compatibility with unnamed vectors
                 document.embed(embedder=self.embedder)
-                vector = document.embedding
+                final_vector = document.embedding
             else:
                 # For other search types, use named vectors
-                vector = {}
+                named_vector: Dict[str, Any] = {}
                 if self.search_type in [SearchType.hybrid]:
                     document.embed(embedder=self.embedder)
-                    vector[self.dense_vector_name] = document.embedding
+                    named_vector[self.dense_vector_name] = document.embedding
 
                 if self.search_type in [SearchType.keyword, SearchType.hybrid]:
-                    vector[self.sparse_vector_name] = next(self.sparse_encoder.embed([document.content])).as_object()
+                    named_vector[self.sparse_vector_name] = next(
+                        self.sparse_encoder.embed([document.content])
+                    ).as_object()
+
+                final_vector = named_vector
 
             # Create payload with document properties
             payload = {
@@ -355,7 +364,7 @@ class Qdrant(VectorDb):
             points.append(
                 models.PointStruct(
                     id=doc_id,
-                    vector=vector,
+                    vector=final_vector,
                     payload=payload,
                 )
             )
