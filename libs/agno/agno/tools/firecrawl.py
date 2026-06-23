@@ -5,10 +5,26 @@ from typing import Any, Dict, List, Optional
 from agno.tools import Toolkit
 from agno.utils.log import logger
 
+# Import FirecrawlApp; if the package is missing raise an informative error.
 try:
-    from firecrawl import FirecrawlApp, ScrapeOptions  # type: ignore[attr-defined]
+    from firecrawl import FirecrawlApp  # type: ignore[attr-defined]
 except ImportError:
-    raise ImportError("`firecrawl-py` not installed. Please install using `pip install firecrawl-py`")
+    raise ImportError(
+        "`firecrawl-py` not installed. Please install using `pip install firecrawl-py` or upgrade it (`pip install --upgrade firecrawl-py`)."
+    )
+
+# Try to import ScrapeOptions; fall back to V1ScrapeOptions if available. If neither is
+# available, set ScrapeOptions to None and warn so callers can handle the absence.
+try:
+    from firecrawl import ScrapeOptions  # type: ignore[attr-defined]
+except Exception:
+    try:
+        from firecrawl import V1ScrapeOptions as ScrapeOptions  # type: ignore[attr-defined]
+    except Exception:
+        ScrapeOptions = None
+        logger.warning(
+            "firecrawl package does not export ScrapeOptions or V1ScrapeOptions; 'formats' options will be ignored."
+        )
 
 
 class CustomJSONEncoder(json.JSONEncoder):
@@ -104,7 +120,12 @@ class FirecrawlTools(Toolkit):
         if self.limit or limit:
             params["limit"] = self.limit or limit
         if self.formats:
-            params["scrape_options"] = ScrapeOptions(formats=self.formats)  # type: ignore
+            if ScrapeOptions is not None:
+                params["scrape_options"] = ScrapeOptions(formats=self.formats)  # type: ignore
+            else:
+                logger.warning(
+                    "ScrapeOptions not available in installed firecrawl package; ignoring 'formats' argument for crawl_website."
+                )
 
         params["poll_interval"] = self.poll_interval
 
@@ -132,7 +153,12 @@ class FirecrawlTools(Toolkit):
         if self.limit or limit:
             params["limit"] = self.limit or limit
         if self.formats:
-            params["scrape_options"] = ScrapeOptions(formats=self.formats)  # type: ignore
+            if ScrapeOptions is not None:
+                params["scrape_options"] = ScrapeOptions(formats=self.formats)  # type: ignore
+            else:
+                logger.warning(
+                    "ScrapeOptions not available in installed firecrawl package; ignoring 'formats' argument for search."
+                )
         if self.search_params:
             params.update(self.search_params)
 
