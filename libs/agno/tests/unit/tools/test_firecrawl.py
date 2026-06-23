@@ -5,6 +5,10 @@ import os
 from unittest.mock import Mock, patch
 
 import pytest
+
+# If the external "firecrawl" package is not installed in CI, skip these tests
+pytest.importorskip("firecrawl")
+
 from firecrawl import FirecrawlApp
 
 from agno.tools.firecrawl import FirecrawlTools
