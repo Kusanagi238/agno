@@ -2413,22 +2413,24 @@ class Agent:
 
     def _convert_response_to_structured_format(self, run_response: Union[RunResponse, ModelResponse]):
         # Convert the response to the structured format if needed
-        if self.response_model is not None and not isinstance(run_response.content, self.response_model):
-            if isinstance(run_response.content, str) and self.parse_response:
-                try:
-                    structured_output = parse_response_model_str(run_response.content, self.response_model)
+        if self.response_model is not None:
+            response_model = cast(Type[BaseModel], self.response_model)
+            if not isinstance(run_response.content, response_model):
+                if isinstance(run_response.content, str) and self.parse_response:
+                    try:
+                        structured_output = parse_response_model_str(run_response.content, response_model)
 
-                    # Update RunResponse
-                    if structured_output is not None:
-                        run_response.content = structured_output
-                        if hasattr(run_response, "content_type"):
-                            run_response.content_type = self.response_model.__name__
-                    else:
-                        log_warning("Failed to convert response to response_model")
-                except Exception as e:
-                    log_warning(f"Failed to convert response to output model: {e}")
-            else:
-                log_warning("Something went wrong. Run response content is not a string")
+                        # Update RunResponse
+                        if structured_output is not None:
+                            run_response.content = structured_output
+                            if hasattr(run_response, "content_type"):
+                                run_response.content_type = response_model.__name__
+                        else:
+                            log_warning("Failed to convert response to response_model")
+                    except Exception as e:
+                        log_warning(f"Failed to convert response to output model: {e}")
+                else:
+                    log_warning("Something went wrong. Run response content is not a string")
 
     def _handle_external_execution_update(self, run_messages: RunMessages, tool: ToolExecution):
         self.model = cast(Model, self.model)
@@ -3129,10 +3131,13 @@ class Agent:
                 if model_response_event.content is not None:
                     if self.should_parse_structured_output:
                         model_response.content = model_response_event.content
-                        content_type = self.response_model.__name__
+                        # Guard against response_model being None before accessing __name__
+                        content_type = getattr(self.response_model, "__name__", "str")
                         run_response.content = model_response.content
                         run_response.content_type = content_type
-                        self._convert_response_to_structured_format(model_response)
+                        # Only attempt to convert to structured format if a response_model is provided
+                        if self.response_model is not None:
+                            self._convert_response_to_structured_format(model_response)
                     else:
                         model_response.content = (model_response.content or "") + model_response_event.content
                         run_response.content = model_response.content
@@ -3775,11 +3780,12 @@ class Agent:
             return None
         else:
             json_response_format = {"type": "json_object"}
+            response_model = cast(Type[BaseModel], self.response_model)
 
             if self.model.supports_native_structured_outputs:
                 if not self.use_json_mode or self.structured_outputs:
                     log_debug("Setting Model.response_format to Agent.response_model")
-                    return self.response_model
+                    return response_model
                 else:
                     log_debug(
                         "Model supports native structured outputs but it is not enabled. Using JSON mode instead."
@@ -3792,8 +3798,8 @@ class Agent:
                     return {
                         "type": "json_schema",
                         "json_schema": {
-                            "name": self.response_model.__name__,
-                            "schema": self.response_model.model_json_schema(),
+                            "name": response_model.__name__,
+                            "schema": response_model.model_json_schema(),
                         },
                     }
                 else:
@@ -5758,11 +5764,8 @@ class Agent:
                 log_warning("Reasoning error. Reasoning agent is None, continuing regular session...")
                 return
             # Ensure the reasoning agent response model is ReasoningSteps
-            if (
-                reasoning_agent.response_model is not None
-                and not isinstance(reasoning_agent.response_model, type)
-                and not issubclass(reasoning_agent.response_model, ReasoningSteps)
-            ):
+            resp_model = reasoning_agent.response_model
+            if resp_model is not None and (not isinstance(resp_model, type) or not issubclass(resp_model, ReasoningSteps)):
                 log_warning("Reasoning agent response model should be `ReasoningSteps`, continuing regular session...")
                 return
             # Ensure the reasoning model and agent do not show tool calls

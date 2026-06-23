@@ -4145,7 +4145,7 @@ class Team:
             # Ensure the reasoning agent response model is ReasoningSteps
             if (
                 reasoning_agent.response_model is not None
-                and not isinstance(reasoning_agent.response_model, type)
+                and isinstance(reasoning_agent.response_model, type)
                 and not issubclass(reasoning_agent.response_model, ReasoningSteps)
             ):
                 log_warning("Reasoning agent response model should be `ReasoningSteps`, continuing regular session...")
@@ -5320,7 +5320,7 @@ class Team:
                 json_output_prompt += "\n<json_fields>"
                 json_output_prompt += f"\n{json.dumps(self.response_model)}"
                 json_output_prompt += "\n</json_fields>"
-            elif issubclass(self.response_model, BaseModel):
+            elif isinstance(self.response_model, type) and issubclass(self.response_model, BaseModel):
                 json_schema = self.response_model.model_json_schema()
                 if json_schema is not None:
                     response_model_properties = {}
@@ -6143,10 +6143,11 @@ class Team:
 
         return member_agent_task
 
-    def _get_member_id(self, member: Union[Agent, "Team"]) -> str:
+    def _get_member_id(self, member: Union[Agent, "Team"]) -> Optional[str]:
         """
         Get the ID of a member
         """
+        url_safe_member_id: Optional[str]
         if isinstance(member, Agent) and member.agent_id is not None and (not is_valid_uuid(member.agent_id)):
             url_safe_member_id = url_safe_string(member.agent_id)
         elif isinstance(member, Team) and member.team_id is not None and (not is_valid_uuid(member.team_id)):
