@@ -1,6 +1,6 @@
 import asyncio
 from hashlib import md5
-from typing import Any, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 try:
     from chromadb import Client as ChromaDbClient
@@ -14,7 +14,9 @@ except ImportError:
 
 from agno.document import Document
 from agno.embedder import Embedder
-from agno.reranker.base import Reranker
+
+if TYPE_CHECKING:
+    from agno.reranker.base import Reranker
 from agno.utils.log import log_debug, log_info, logger
 from agno.vectordb.base import VectorDb
 from agno.vectordb.distance import Distance

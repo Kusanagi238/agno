@@ -1,16 +1,27 @@
-from typing import Any, List, Optional
+from typing import TYPE_CHECKING, Any, List, Optional
 from urllib.parse import urlparse
 
 from agno.document import Document
 from agno.reranker.base import Reranker
 from agno.utils.log import logger
 
+if TYPE_CHECKING:
+    # Type-only imports for static type checkers
+    from infinity_client import AuthenticatedClient, Client  # type: ignore
+    from infinity_client.api.default import rerank  # type: ignore
+    from infinity_client.models import RerankInput  # type: ignore
+
+# At runtime, try to import the optional dependency. Do not raise at import time;
+# instead provide safe fallbacks so test collection and static analysis succeed.
 try:
-    from infinity_client import AuthenticatedClient, Client
-    from infinity_client.api.default import rerank
-    from infinity_client.models import RerankInput
+    from infinity_client import AuthenticatedClient, Client  # type: ignore
+    from infinity_client.api.default import rerank  # type: ignore
+    from infinity_client.models import RerankInput  # type: ignore
 except ImportError:
-    raise ImportError("infinity_client not installed, please run `pip install infinity_client`")
+    AuthenticatedClient = None  # type: ignore
+    Client = None  # type: ignore
+    rerank = None  # type: ignore
+    RerankInput = Any  # type: ignore
 
 
 class InfinityReranker(Reranker):

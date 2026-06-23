@@ -414,10 +414,10 @@ def get_sync_playground_router(
                         # Remove the memory from the response
                         run.pop("memory", None)
                         agent_session_dict["runs"].append(
-                            {
-                                "message": first_user_message,
-                                "response": run,
-                            }
+                            WorkflowSessionResponse(
+                                message=first_user_message,
+                                response=run,
+                            )
                         )
 
         return agent_session_dict
@@ -553,12 +553,12 @@ def get_sync_playground_router(
         for session in all_workflow_sessions:
             title = get_session_title_from_workflow_session(session)
             workflow_sessions.append(
-                {
-                    "title": title,
-                    "session_id": session.session_id,
-                    "session_name": session.session_data.get("session_name") if session.session_data else None,
-                    "created_at": session.created_at,
-                }
+                WorkflowSessionResponse(
+                    title=title,
+                    session_id=session.session_id,
+                    session_name=session.session_data.get("session_name") if session.session_data else None,
+                    created_at=session.created_at,
+                )
             )
         return workflow_sessions
 
@@ -789,10 +789,10 @@ def get_sync_playground_router(
                         # Remove the memory from the response
                         run.pop("memory", None)
                         team_session_dict["runs"].append(
-                            {
-                                "message": first_user_message,
-                                "response": run,
-                            }
+                            WorkflowSessionResponse(
+                                message=first_user_message,
+                                response=run,
+                            )
                         )
         return team_session_dict
 

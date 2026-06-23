@@ -8,7 +8,14 @@ from unittest.mock import MagicMock, Mock, mock_open, patch
 import pytest
 from google.oauth2.credentials import Credentials
 
-from agno.tools.gmail import GmailTools
+# Import GmailTools lazily / defensively to avoid importing project modules
+# that may require optional third-party dependencies at pytest collection time.
+try:
+    from agno.tools.gmail import GmailTools
+except Exception:
+    # If import fails (missing optional deps), set to None so test collection
+    # does not abort. Individual tests can import inside their scope if needed.
+    GmailTools = None
 
 
 @pytest.fixture

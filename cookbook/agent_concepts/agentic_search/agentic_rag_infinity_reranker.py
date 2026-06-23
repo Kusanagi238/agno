@@ -49,7 +49,13 @@ from agno.agent import Agent
 from agno.embedder.cohere import CohereEmbedder
 from agno.knowledge.url import UrlKnowledge
 from agno.models.anthropic import Claude
-from agno.reranker.infinity import InfinityReranker
+
+try:
+    from agno.reranker.infinity import InfinityReranker  # type: ignore
+except Exception:
+    # InfinityReranker depends on the third-party 'infinity-client' package.
+    # Make the import optional so tests and type-checking don't fail when it's absent.
+    InfinityReranker = None  # type: ignore
 from agno.vectordb.lancedb import LanceDb, SearchType
 
 # Create a knowledge base, loaded with documents from a URL

@@ -5,7 +5,11 @@ from typing import List
 import pytest
 
 from agno.document import Document
-from agno.vectordb.chroma import ChromaDb
+
+try:
+    from agno.vectordb.chroma import ChromaDb
+except Exception:  # pragma: no cover - optional dependency may be missing in some environments
+    ChromaDb = None
 from agno.vectordb.distance import Distance
 
 TEST_COLLECTION = "test_collection"

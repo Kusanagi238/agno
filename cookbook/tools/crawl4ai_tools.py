@@ -1,6 +1,24 @@
 from agno.agent import Agent
 from agno.models.openai import OpenAIChat
-from agno.tools.crawl4ai import Crawl4aiTools
+
+
+def import_crawl4ai_tools():
+    try:
+        from agno.tools.crawl4ai import Crawl4aiTools
+
+        return Crawl4aiTools
+    except Exception:
+
+        class Crawl4aiToolsStub:
+            def __init__(self, *args, **kwargs):
+                raise ImportError(
+                    "Failed to import Crawl4aiTools (missing or incompatible dependency). "
+                    "Install or upgrade the required package or avoid using crawl4ai tools. "
+                    "Original error: {}".format(e)
+                )
+
+        return Crawl4aiToolsStub
+
 
 # # Example 1: Basic usage
 agent = Agent(
