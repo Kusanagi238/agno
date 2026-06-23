@@ -76,20 +76,24 @@ class WebsiteKnowledgeBase(AgentKnowledge):
         log_info("Loading knowledge base")
 
         # Given that the crawler needs to parse the URL before existence can be checked
-        # We check if the website url exists in the vector db if recreate is False
+        # We optionally check if the website url exists in the vector db if recreate is False and skip_existing is True
         urls_to_read = self.urls.copy()
-        if not recreate:
+        if not recreate and skip_existing:
+            filtered_urls = []
             for url in urls_to_read:
                 log_debug(f"Checking if {url} exists in the vector db")
                 if self.vector_db.name_exists(name=url):
                     log_debug(f"Skipping {url} as it exists in the vector db")
-                    urls_to_read.remove(url)
+                else:
+                    filtered_urls.append(url)
+            urls_to_read = filtered_urls
 
         num_documents = 0
         for url in urls_to_read:
-            if document_list := self.reader.read(url=url):
+            document_list = self.reader.read(url=url)
+            if document_list:
                 # Filter out documents which already exist in the vector db
-                if not recreate:
+                if not recreate and skip_existing:
                     document_list = [document for document in document_list if not self.vector_db.doc_exists(document)]
                     if not document_list:
                         continue
@@ -135,19 +139,22 @@ class WebsiteKnowledgeBase(AgentKnowledge):
         num_documents = 0
 
         urls_to_read = self.urls.copy()
-        if not recreate:
-            for url in urls_to_read[:]:
+        if not recreate and skip_existing:
+            filtered_urls = []
+            for url in urls_to_read:
                 log_debug(f"Checking if {url} exists in the vector db")
-                name_exists = vector_db.async_name_exists(name=url)
+                name_exists = await vector_db.async_name_exists(name=url)
                 if name_exists:
                     log_debug(f"Skipping {url} as it exists in the vector db")
-                    urls_to_read.remove(url)
+                else:
+                    filtered_urls.append(url)
+            urls_to_read = filtered_urls
 
         async def process_url(url: str) -> List[Document]:
             try:
                 document_list = await reader.async_read(url=url)
 
-                if not recreate:
+                if not recreate and skip_existing:
                     filtered_documents = []
                     for document in document_list:
                         if not await vector_db.async_doc_exists(document):
@@ -173,4 +180,8 @@ class WebsiteKnowledgeBase(AgentKnowledge):
 
         if self.optimize_on is not None and num_documents > self.optimize_on:
             log_debug("Optimizing Vector DB")
-            vector_db.optimize()
+            # Prefer an async optimize if the vector DB exposes it, otherwise fall back to sync optimize
+            if hasattr(vector_db, "async_optimize") and callable(getattr(vector_db, "async_optimize")):
+                await vector_db.async_optimize()
+            elif hasattr(vector_db, "optimize") and callable(getattr(vector_db, "optimize")):
+                vector_db.optimize()
