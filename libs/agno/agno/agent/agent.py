@@ -992,7 +992,10 @@ class Agent:
         index_of_last_user_message = len(run_messages.messages)
 
         # 2. Generate a response from the Model (includes running function calls)
-        model_response: ModelResponse = await self.model.aresponse(
+        model = self.model
+        if model is None:
+            raise RuntimeError("No model configured for agent")
+        model_response: ModelResponse = await model.aresponse(
             messages=run_messages.messages,
             response_format=response_format,
             tools=self._tools_for_model,
