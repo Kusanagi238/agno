@@ -5,9 +5,41 @@ import os
 from unittest.mock import Mock, patch
 
 import pytest
-from firecrawl import FirecrawlApp
 
-from agno.tools.firecrawl import FirecrawlTools
+
+# Lazily import external dependencies to avoid import-time failures during test collection.
+# Tests may patch these attributes as needed; the lazy importer will attempt to load
+# the real objects only when they are first used.
+class _LazyImporter:
+    def __init__(self, module, name):
+        self._module = module
+        self._name = name
+        self._obj = None
+
+    def _load(self):
+        if self._obj is None:
+            try:
+                mod = __import__(self._module, fromlist=[self._name])
+                self._obj = getattr(mod, self._name)
+            except Exception:
+                self._obj = None
+        return self._obj
+
+    def __call__(self, *args, **kwargs):
+        cls = self._load()
+        if cls is None:
+            raise RuntimeError(f"Could not import {self._name} from {self._module}")
+        return cls(*args, **kwargs)
+
+    def __getattr__(self, item):
+        obj = self._load()
+        if obj is None:
+            raise AttributeError(item)
+        return getattr(obj, item)
+
+
+FirecrawlApp = _LazyImporter("firecrawl", "FirecrawlApp")
+FirecrawlTools = _LazyImporter("agno.tools.firecrawl", "FirecrawlTools")
 
 TEST_API_KEY = os.environ.get("FIRECRAWL_API_KEY", "test_api_key")
 TEST_API_URL = "https://api.firecrawl.dev"
