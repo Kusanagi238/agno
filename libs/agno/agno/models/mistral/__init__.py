@@ -1,5 +1,7 @@
-from agno.models.mistral.mistral import MistralChat
+from .mistral import MistralChat, ScrapeOptions, V1ScrapeOptions
 
 __all__ = [
     "MistralChat",
+    "ScrapeOptions",
+    "V1ScrapeOptions",
 ]

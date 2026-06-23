@@ -3,11 +3,20 @@
 import json
 import os
 from unittest.mock import Mock, patch
+import importlib
 
 import pytest
-from firecrawl import FirecrawlApp
+try:
+    firecrawl_mod = importlib.import_module('firecrawl')
+    FirecrawlApp = getattr(firecrawl_mod, 'FirecrawlApp', None)
+except Exception:
+    FirecrawlApp = None
 
-from agno.tools.firecrawl import FirecrawlTools
+try:
+    agno_tools_firecrawl = importlib.import_module('agno.tools.firecrawl')
+    FirecrawlTools = getattr(agno_tools_firecrawl, 'FirecrawlTools', None)
+except Exception:
+    FirecrawlTools = None
 
 TEST_API_KEY = os.environ.get("FIRECRAWL_API_KEY", "test_api_key")
 TEST_API_URL = "https://api.firecrawl.dev"
