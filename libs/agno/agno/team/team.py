@@ -1711,12 +1711,13 @@ class Team:
 
         if stream_intermediate_steps and reasoning_state["reasoning_started"]:
             all_reasoning_steps: List[ReasoningStep] = []
+            rr = self.run_response
             if (
-                self.run_response
-                and self.run_response.extra_data
-                and hasattr(self.run_response.extra_data, "reasoning_steps")
+                rr is not None
+                and getattr(rr, "extra_data", None) is not None
+                and hasattr(rr.extra_data, "reasoning_steps")
             ):
-                all_reasoning_steps = cast(List[ReasoningStep], self.run_response.extra_data.reasoning_steps)
+                all_reasoning_steps = cast(List[ReasoningStep], rr.extra_data.reasoning_steps)
 
             if all_reasoning_steps:
                 self._add_reasoning_metrics_to_extra_data(run_response, reasoning_state["reasoning_time_taken"])
@@ -4810,7 +4811,7 @@ class Team:
     ):
         # Get references from the knowledge base to use in the user message
         references = None
-        self.run_response = cast(RunResponse, self.run_response)
+        rr = self.run_response
         if self.add_references and message:
             message_str: str
             if isinstance(message, str):
@@ -4831,11 +4832,14 @@ class Team:
                         query=message_str, references=docs_from_knowledge, time=round(retrieval_timer.elapsed, 4)
                     )
                     # Add the references to the run_response
-                    if self.run_response.extra_data is None:
-                        self.run_response.extra_data = RunResponseExtraData()
-                    if self.run_response.extra_data.references is None:
-                        self.run_response.extra_data.references = []
-                    self.run_response.extra_data.references.append(references)
+                    if rr is None:
+                        rr = RunResponse()
+                        self.run_response = rr
+                    if rr.extra_data is None:
+                        rr.extra_data = RunResponseExtraData()
+                    if rr.extra_data.references is None:
+                        rr.extra_data.references = []
+                    rr.extra_data.references.append(references)
                 retrieval_timer.stop()
                 log_debug(f"Time to get references: {retrieval_timer.elapsed:.4f}s")
             except Exception as e:
@@ -5865,7 +5869,7 @@ class Team:
 
         return transfer_func
 
-    def _get_member_id(self, member: Union[Agent, "Team"]) -> str:
+    def _get_member_id(self, member: Union[Agent, "Team"]) -> Optional[str]:
         """
         Get the ID of a member
         """
@@ -6841,7 +6845,7 @@ class Team:
             log_warning(f"Error searching knowledge base: {e}")
             raise e
 
-    def _convert_documents_to_string(self, docs: List[Dict[str, Any]]) -> str:
+    def _convert_documents_to_string(self, docs: Optional[List[Union[Dict[str, Any], str]]]) -> str:
         if docs is None or len(docs) == 0:
             return ""
 
@@ -6894,7 +6898,7 @@ class Team:
                 str: A string containing the response from the knowledge base.
             """
             # Get the relevant documents from the knowledge base, passing filters
-            self.run_response = cast(TeamRunResponse, self.run_response)
+            rr = self.run_response
             retrieval_timer = Timer()
             retrieval_timer.start()
             docs_from_knowledge = self.get_relevant_docs_from_knowledge(query=query, filters=knowledge_filters)
@@ -6903,11 +6907,14 @@ class Team:
                     query=query, references=docs_from_knowledge, time=round(retrieval_timer.elapsed, 4)
                 )
                 # Add the references to the run_response
-                if self.run_response.extra_data is None:
-                    self.run_response.extra_data = RunResponseExtraData()
-                if self.run_response.extra_data.references is None:
-                    self.run_response.extra_data.references = []
-                self.run_response.extra_data.references.append(references)
+                if rr is None:
+                    rr = TeamRunResponse()
+                    self.run_response = rr
+                if rr.extra_data is None:
+                    rr.extra_data = RunResponseExtraData()
+                if rr.extra_data.references is None:
+                    rr.extra_data.references = []
+                rr.extra_data.references.append(references)
             retrieval_timer.stop()
             log_debug(f"Time to get references: {retrieval_timer.elapsed:.4f}s")
 
@@ -6924,7 +6931,7 @@ class Team:
             Returns:
                 str: A string containing the response from the knowledge base.
             """
-            self.run_response = cast(TeamRunResponse, self.run_response)
+            rr = self.run_response
             retrieval_timer = Timer()
             retrieval_timer.start()
             docs_from_knowledge = await self.aget_relevant_docs_from_knowledge(query=query, filters=knowledge_filters)
@@ -6932,11 +6939,14 @@ class Team:
                 references = MessageReferences(
                     query=query, references=docs_from_knowledge, time=round(retrieval_timer.elapsed, 4)
                 )
-                if self.run_response.extra_data is None:
-                    self.run_response.extra_data = RunResponseExtraData()
-                if self.run_response.extra_data.references is None:
-                    self.run_response.extra_data.references = []
-                self.run_response.extra_data.references.append(references)
+                if rr is None:
+                    rr = TeamRunResponse()
+                    self.run_response = rr
+                if rr.extra_data is None:
+                    rr.extra_data = RunResponseExtraData()
+                if rr.extra_data.references is None:
+                    rr.extra_data.references = []
+                rr.extra_data.references.append(references)
             retrieval_timer.stop()
             log_debug(f"Time to get references: {retrieval_timer.elapsed:.4f}s")
 
@@ -6967,7 +6977,7 @@ class Team:
             search_filters = self._get_agentic_or_user_search_filters(filters, knowledge_filters)
 
             # Get the relevant documents from the knowledge base, passing filters
-            self.run_response = cast(TeamRunResponse, self.run_response)
+            rr = self.run_response
             retrieval_timer = Timer()
             retrieval_timer.start()
             docs_from_knowledge = self.get_relevant_docs_from_knowledge(query=query, filters=search_filters)
@@ -6976,11 +6986,14 @@ class Team:
                     query=query, references=docs_from_knowledge, time=round(retrieval_timer.elapsed, 4)
                 )
                 # Add the references to the run_response
-                if self.run_response.extra_data is None:
-                    self.run_response.extra_data = RunResponseExtraData()
-                if self.run_response.extra_data.references is None:
-                    self.run_response.extra_data.references = []
-                self.run_response.extra_data.references.append(references)
+                if rr is None:
+                    rr = TeamRunResponse()
+                    self.run_response = rr
+                if rr.extra_data is None:
+                    rr.extra_data = RunResponseExtraData()
+                if rr.extra_data.references is None:
+                    rr.extra_data.references = []
+                rr.extra_data.references.append(references)
             retrieval_timer.stop()
             log_debug(f"Time to get references: {retrieval_timer.elapsed:.4f}s")
 
@@ -7000,7 +7013,7 @@ class Team:
             """
             search_filters = self._get_agentic_or_user_search_filters(filters, knowledge_filters)
 
-            self.run_response = cast(TeamRunResponse, self.run_response)
+            rr = self.run_response
             retrieval_timer = Timer()
             retrieval_timer.start()
             docs_from_knowledge = await self.aget_relevant_docs_from_knowledge(query=query, filters=search_filters)
@@ -7008,11 +7021,14 @@ class Team:
                 references = MessageReferences(
                     query=query, references=docs_from_knowledge, time=round(retrieval_timer.elapsed, 4)
                 )
-                if self.run_response.extra_data is None:
-                    self.run_response.extra_data = RunResponseExtraData()
-                if self.run_response.extra_data.references is None:
-                    self.run_response.extra_data.references = []
-                self.run_response.extra_data.references.append(references)
+                if rr is None:
+                    rr = TeamRunResponse()
+                    self.run_response = rr
+                if rr.extra_data is None:
+                    rr.extra_data = RunResponseExtraData()
+                if rr.extra_data.references is None:
+                    rr.extra_data.references = []
+                rr.extra_data.references.append(references)
             retrieval_timer.stop()
             log_debug(f"Time to get references: {retrieval_timer.elapsed:.4f}s")
 
@@ -7047,14 +7063,14 @@ class Team:
 
         run_data: Dict[str, Any] = {
             "functions": functions,
-            "metrics": self.run_response.metrics,  # type: ignore
+            "metrics": self.run_response.metrics if self.run_response is not None else {},  # type: ignore
         }
 
         if self.monitoring:
             run_data.update(
                 {
                     "run_input": self.run_input,
-                    "run_response": self.run_response.to_dict(),  # type: ignore
+                    "run_response": self.run_response.to_dict() if self.run_response is not None else None,  # type: ignore
                     "run_response_format": run_response_format,
                 }
             )
@@ -7268,7 +7284,7 @@ class Team:
                 "model": self.model.id,
                 "provider": self.model.provider,
             }
-        tools: List[Dict[str, Any]] = []
+        tools: List[Any] = []
         if self.tools is not None:
             if not hasattr(self, "_tools_for_model") or self._tools_for_model is None:
                 team_model = self.model

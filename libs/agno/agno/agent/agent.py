@@ -1004,7 +1004,11 @@ class Agent:
                     else:
                         self.run_input = message
                 elif messages is not None:
-                    self.run_input = [m.to_dict() if isinstance(m, Message) else m for m in messages]
+                    # Normalize messages so run_input is always a list[dict]
+                    self.run_input = [
+                        m.to_dict() if isinstance(m, Message) else (m if isinstance(m, dict) else {"content": m})
+                        for m in messages
+                    ]
 
                 # Prepare run messages
                 run_messages: RunMessages = self.get_run_messages(
@@ -1699,7 +1703,11 @@ class Agent:
             else:
                 self.run_input = user_message
         elif messages is not None:
-            self.run_input = [m.to_dict() if isinstance(m, Message) else m for m in messages]
+            # Normalize messages so run_input is always a list[dict]
+            self.run_input = [
+                m.to_dict() if isinstance(m, Message) else (m if isinstance(m, dict) else {"content": m})
+                for m in messages
+            ]
 
         last_exception = None
         num_attempts = retries + 1
@@ -4530,7 +4538,13 @@ class Agent:
         ):
             user_msg_content += "\n\nUse the following references from the knowledge base if it helps:\n"
             user_msg_content += "<references>\n"
-            user_msg_content += self.convert_documents_to_string(references.references) + "\n"
+            # Ensure references are normalized to dicts before conversion
+            user_msg_content += (
+                self.convert_documents_to_string(
+                    [r if isinstance(r, dict) else {"content": r} for r in references.references]
+                )
+                + "\n"
+            )
             user_msg_content += "</references>"
         # 4.2 Add context to user message
         if self.add_context and self.context is not None:
@@ -5205,18 +5219,29 @@ class Agent:
             log_warning(f"Error searching knowledge base: {e}")
             raise e
 
-    def convert_documents_to_string(self, docs: List[Dict[str, Any]]) -> str:
+    def convert_documents_to_string(self, docs: Optional[List[Union[Dict[str, Any], str]]]) -> str:
         if docs is None or len(docs) == 0:
             return ""
+
+        # Normalize docs to a list of dicts; treat string entries as content
+        normalized: List[Dict[str, Any]] = []
+        for d in docs:
+            if isinstance(d, dict):
+                normalized.append(d)
+            elif isinstance(d, str):
+                normalized.append({"content": d})
+            else:
+                # Fallback: coerce other types to string content
+                normalized.append({"content": str(d)})
 
         if self.references_format == "yaml":
             import yaml
 
-            return yaml.dump(docs)
+            return yaml.dump(normalized)
 
         import json
 
-        return json.dumps(docs, indent=2, ensure_ascii=False)
+        return json.dumps(normalized, indent=2, ensure_ascii=False)
 
     def convert_context_to_string(self, context: Dict[str, Any]) -> str:
         """Convert the context dictionary to a string representation.
