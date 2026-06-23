@@ -4,6 +4,10 @@ from dataclasses import asdict
 from pathlib import Path
 from typing import Optional, Union
 
+<<<<<<< ours
+=======
+from agno.eval.results import AccuracyResult, PerformanceResult, ReliabilityResult
+>>>>>>> theirs
 from agno.utils.log import logger
 
 
