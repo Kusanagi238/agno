@@ -5,7 +5,32 @@ import os
 from unittest.mock import Mock, patch
 
 import pytest
-from firecrawl import FirecrawlApp
+
+try:
+    # Prefer the newer symbol if available (some firecrawl releases renamed ScrapeOptions)
+    from firecrawl import FirecrawlApp, V1ScrapeOptions
+except Exception:
+    # Provide a lightweight fallback for environments without firecrawl installed
+    import types
+
+    firecrawl = types.SimpleNamespace()
+
+    class FirecrawlApp:
+        def __init__(self, *args, **kwargs):
+            pass
+
+    class V1ScrapeOptions:
+        def __init__(self, *args, **kwargs):
+            pass
+
+    # Provide both names some code may expect
+    firecrawl.FirecrawlApp = FirecrawlApp
+    firecrawl.V1ScrapeOptions = V1ScrapeOptions
+    firecrawl.ScrapeOptions = V1ScrapeOptions
+
+    import sys
+
+    sys.modules["firecrawl"] = firecrawl
 
 from agno.tools.firecrawl import FirecrawlTools
 

@@ -5286,7 +5286,7 @@ class Agent:
                 log_warning(f"Failed to save output to file: {e}")
 
     def update_run_response_with_reasoning(
-        self, reasoning_steps: List[ReasoningStep], reasoning_agent_messages: List[Message]
+        self, new_reasoning_steps: List[ReasoningStep], reasoning_agent_messages: List[Message]
     ) -> None:
         self.run_response = cast(RunResponse, self.run_response)
         if self.run_response.extra_data is None:
@@ -5296,9 +5296,9 @@ class Agent:
 
         # Update reasoning_steps
         if extra_data.reasoning_steps is None:
-            extra_data.reasoning_steps = reasoning_steps
+            extra_data.reasoning_steps = new_reasoning_steps
         else:
-            extra_data.reasoning_steps.extend(reasoning_steps)
+            extra_data.reasoning_steps.extend(new_reasoning_steps)
 
         # Update reasoning_messages
         if extra_data.reasoning_messages is None:
@@ -5308,7 +5308,7 @@ class Agent:
 
         # Create and store reasoning_content
         reasoning_content = ""
-        for step in reasoning_steps:
+        for step in new_reasoning_steps:
             if step.title:
                 reasoning_content += f"## {step.title}\n"
             if step.reasoning:
@@ -5737,7 +5737,7 @@ class Agent:
                             log_warning("Reasoning error. Reasoning steps are empty, continuing regular session...")
                             break
 
-                        reasoning_steps: List[ReasoningStep] = reasoning_agent_response.content.reasoning_steps
+                        reasoning_steps = reasoning_agent_response.content.reasoning_steps
                     all_reasoning_steps.extend(reasoning_steps)
                     # Yield reasoning steps
                     if self.stream_intermediate_steps:
@@ -5968,7 +5968,7 @@ class Agent:
                             log_warning("Reasoning error. Reasoning steps are empty, continuing regular session...")
                             break
 
-                        reasoning_steps: List[ReasoningStep] = reasoning_agent_response.content.reasoning_steps
+                        reasoning_steps = reasoning_agent_response.content.reasoning_steps
                     all_reasoning_steps.extend(reasoning_steps)
                     # Yield reasoning steps
                     if self.stream_intermediate_steps:
