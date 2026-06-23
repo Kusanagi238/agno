@@ -6410,6 +6410,8 @@ class Team:
         from agno.document import Document
 
         if self.retriever is not None and callable(self.retriever):
+            import asyncio
+            import inspect
             from inspect import signature
 
             try:
@@ -6418,7 +6420,35 @@ class Team:
                 if "team" in sig.parameters:
                     retriever_kwargs = {"team": self}
                 retriever_kwargs.update({"query": query, "num_documents": num_documents, **kwargs})
-                return self.retriever(**retriever_kwargs)
+
+                # Handle async and sync retrievers appropriately
+                if inspect.iscoroutinefunction(self.retriever):
+                    try:
+                        # Preferred: run coroutine directly
+                        return asyncio.run(self.retriever(**retriever_kwargs))
+                    except RuntimeError:
+                        # If an event loop is already running in this thread, run the coroutine
+                        # in a separate thread to avoid "asyncio.run() cannot be called from a
+                        # running event loop" error.
+                        import threading
+
+                        result: Dict[str, Any] = {}
+
+                        def _runner() -> None:
+                            try:
+                                result["value"] = asyncio.run(self.retriever(**retriever_kwargs))
+                            except Exception as e:
+                                result["error"] = e
+
+                        t = threading.Thread(target=_runner)
+                        t.start()
+                        t.join()
+
+                        if "error" in result:
+                            raise result["error"]
+                        return result.get("value")
+                else:
+                    return self.retriever(**retriever_kwargs)
             except Exception as e:
                 log_warning(f"Retriever failed: {e}")
                 return None
@@ -6438,6 +6468,8 @@ class Team:
         from agno.document import Document
 
         if self.retriever is not None and callable(self.retriever):
+            import asyncio
+            import inspect
             from inspect import signature
 
             try:
@@ -6446,7 +6478,13 @@ class Team:
                 if "team" in sig.parameters:
                     retriever_kwargs = {"team": self}
                 retriever_kwargs.update({"query": query, "num_documents": num_documents, **kwargs})
-                return self.retriever(**retriever_kwargs)
+
+                # If retriever is async, await it. If it's sync, run it in a thread.
+                if inspect.iscoroutinefunction(self.retriever):
+                    return await self.retriever(**retriever_kwargs)
+                else:
+                    # Run synchronous retriever in a thread to avoid blocking the event loop
+                    return await asyncio.to_thread(self.retriever, **retriever_kwargs)
             except Exception as e:
                 log_warning(f"Retriever failed: {e}")
                 return None
