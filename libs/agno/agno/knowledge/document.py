@@ -6,7 +6,7 @@ from agno.utils.log import log_info, logger
 
 
 class DocumentKnowledgeBase(AgentKnowledge):
-    documents: Optional[Union[List[Document], List[Dict[str, Union[Document, Dict[str, Any]]]]]] = None
+    documents: Optional[List[Union[Document, Dict[str, Any]]]] = None
 
     @property
     def document_lists(self) -> Iterator[List[Document]]:
@@ -24,6 +24,20 @@ class DocumentKnowledgeBase(AgentKnowledge):
             if isinstance(item, dict) and "document" in item:
                 # Handle document with metadata
                 document = item["document"]
+
+                # If the embedded document is provided as a dict, convert it to a Document
+                if isinstance(document, dict):
+                    document = Document(
+                        content=document.get("content"),
+                        id=document.get("id"),
+                        name=document.get("name"),
+                        meta_data={**document.get("meta_data", {})},
+                        embedder=document.get("embedder"),
+                        embedding=document.get("embedding"),
+                        usage=document.get("usage"),
+                        reranking_score=document.get("reranking_score"),
+                    )
+
                 config = item.get("metadata", {})
                 if config:
                     log_info(f"Adding metadata {config} to document: {document.name}")
@@ -63,6 +77,20 @@ class DocumentKnowledgeBase(AgentKnowledge):
             if isinstance(item, dict) and "document" in item:
                 # Handle document with metadata
                 document = item["document"]
+
+                # If the embedded document is provided as a dict, convert it to a Document
+                if isinstance(document, dict):
+                    document = Document(
+                        content=document.get("content"),
+                        id=document.get("id"),
+                        name=document.get("name"),
+                        meta_data={**document.get("meta_data", {})},
+                        embedder=document.get("embedder"),
+                        embedding=document.get("embedding"),
+                        usage=document.get("usage"),
+                        reranking_score=document.get("reranking_score"),
+                    )
+
                 config = item.get("metadata", {})
                 if config:
                     log_info(f"Adding metadata {config} to document: {document.name}")
