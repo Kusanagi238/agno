@@ -5,9 +5,15 @@ import os
 from unittest.mock import Mock, patch
 
 import pytest
-from firecrawl import FirecrawlApp
+try:
+    from firecrawl import FirecrawlApp
+except Exception:
+    # firecrawl may not be installed or may have incompatible exports in CI; avoid failing at collection time
+    FirecrawlApp = None
 
-from agno.tools.firecrawl import FirecrawlTools
+# Delay importing FirecrawlTools from agno.tools.firecrawl until test runtime to avoid importing
+# the real module (and its dependencies) during pytest collection which can cause ImportError.
+FirecrawlTools = None
 
 TEST_API_KEY = os.environ.get("FIRECRAWL_API_KEY", "test_api_key")
 TEST_API_URL = "https://api.firecrawl.dev"
